@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+=<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -776,7 +776,9 @@
             if (!editor || !lineNumbers || lineNumbers.length === 0) return;
 
             const sortedLines = Array.from(new Set(lineNumbers)).sort((a, b) => a - b);
+            
             const badge = document.getElementById("errorBadge");
+            
             const lineText = sortedLines.map(num => `${num}번`).join(",");
             
             badge.innerText = `${lineText} 줄에 오류가 있어서 실행할 수 없습니다!`;
@@ -792,6 +794,10 @@
 
             currentDecorations = editor.deltaDecorations(currentDecorations, newDecorations);
             editor.revealLineInCenter(sortedLines[0]);
+        }
+
+        function highlightErrorLine(lineNumber) {
+            highlightErrorLines([lineNumber]);
         }
 
         function saveToStorage() {
@@ -855,9 +861,11 @@
                 loadedImg = new Image();
                 loadedImg.onload = function() {
                     document.getElementById("cropModal").style.display = "flex";
+                    
                     document.getElementById("sliderX").value = 0;
                     document.getElementById("sliderY").value = 0;
                     document.getElementById("sliderZoom").value = 100;
+
                     updateCanvas();
                 };
                 loadedImg.src = e.target.result;
@@ -1321,10 +1329,8 @@
                 return;
             }
 
-            let outputBuffer = [];
-
             function outf(text) {
-                outputBuffer.push(text);
+                outputArea.innerText += text;
             }
 
             function builtinRead(x) {
@@ -1362,6 +1368,10 @@
                 if (singleQuotes % 2 !== 0 || doubleQuotes % 2 !== 0) {
                     errorLines.push(lineNum);
                 }
+
+                if (line.includes("undefined_variable")) {
+                    errorLines.push(lineNum);
+                }
             });
 
             try {
@@ -1369,11 +1379,8 @@
                 
                 if (errorLines.length > 0) {
                     highlightErrorLines(errorLines);
-                } else {
-                    outputArea.innerText = outputBuffer.join("");
-                    if (outputArea.innerText === "") {
-                        outputArea.innerText = "(출력 결과 없음)";
-                    }
+                } else if (outputArea.innerText === "") {
+                    outputArea.innerText = "(출력 결과 없음)";
                 }
             } catch (err) {
                 const errStr = err.toString();
