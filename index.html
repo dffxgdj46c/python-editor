@@ -2,1124 +2,213 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>코드를 굽는 마술사</title>
-    <link rel="icon" href="./images/favicon.ico" type="image/x-icon">
-    
-    <script>
-        (function() {
-            try {
-                const savedData = localStorage.getItem("multi_editor_data_v6");
-                if (savedData) {
-                    const parsed = JSON.parse(savedData);
-                    if (parsed && parsed.isDarkBg) {
-                        document.documentElement.classList.add("dark-bg");
-                    }
-                }
-            } catch (e) {}
-        })();
-    </script>
-
-    <!-- Monaco Editor CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
-    
-    <!-- Skulpt CDN (Python) -->
-    <script src="https://unpkg.com/skulpt@1.2.0/dist/skulpt.min.js"></script>
-    <script src="https://unpkg.com/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
-
+    <!-- 파비콘 설정 -->
+    <link rel="icon" href="./favicon.ico">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            display: flex;
+            flex-direction: column;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background: url("https://i.imgur.com/bcT0bda.jpeg") no-repeat center center fixed;
-            background-size: cover;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             overflow: hidden;
-            position: relative;
         }
-
-        body::before,
-        html.dark-bg body::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.65);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-            z-index: 1;
-        }
-
-        body.dark-bg::before,
-        html.dark-bg body::before {
-            opacity: 1;
-        }
-
         header {
-            height: 48px;
-            min-height: 48px;
-            background: rgba(15, 15, 20, 0.45);
-            backdrop-filter: blur(8px);
+            background-color: #252526;
+            padding: 10px 20px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 0 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 9999;
-            flex-wrap: nowrap;
+            justify-content: center;
+            border-bottom: 1px solid #333;
         }
-
-        .header-left {
+        header img {
+            max-height: 50px;
+            object-fit: contain;
+        }
+        .tab-container {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-        .custom-logo {
-            height: 28px;
-            width: 140px;
-            background-image: url("./images/logo.png");
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: left center;
-        }
-
-        .error-badge {
-            display: none;
-            background: rgba(255, 51, 68, 0.25);
-            color: #ff4d4d;
-            border: 1px solid rgba(255, 51, 68, 0.5);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            letter-spacing: -0.2px;
-            white-space: nowrap;
-            animation: errorBadgePulse 2s infinite ease-in-out;
-        }
-
-        @keyframes errorBadgePulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
-            position: relative;
-        }
-
-        .lang-dropdown-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        .notice-text {
-            color: rgba(255, 255, 255, 0.85);
-            font-size: 12px;
-            font-weight: 500;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 5px 12px;
-            border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            letter-spacing: -0.2px;
-            white-space: nowrap;
-            cursor: pointer;
-            transition: 0.2s;
-            user-select: none;
-        }
-        .notice-text:hover {
-            background: rgba(255, 255, 255, 0.25);
-        }
-
-        .lang-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            margin-top: 6px;
-            background: #252526;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
-            padding: 4px 0;
-            width: 150px;
-            z-index: 10000;
-        }
-        .lang-menu-item {
-            padding: 8px 14px;
-            font-size: 12px;
-            color: #ffffff;
-            cursor: pointer;
-            transition: 0.15s;
-        }
-        .lang-menu-item:hover {
-            background: #04395e;
-        }
-
-        .btn-dim, .btn-custom-bg, .btn-reset-bg, .btn-shortcut {
-            background: rgba(255, 255, 255, 0.15);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-        .btn-dim:hover, .btn-custom-bg:hover, .btn-reset-bg:hover, .btn-shortcut:hover {
-            background: rgba(255, 255, 255, 0.25);
-        }
-
-        .btn-reset-bg {
-            display: none;
-            background: rgba(255, 85, 85, 0.3);
-            border-color: rgba(255, 85, 85, 0.4);
-        }
-        .btn-reset-bg:hover { background: rgba(255, 85, 85, 0.5); }
-
-        .btn-run {
-            background: #ff2a74;
-            color: white;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 12px;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(255, 42, 116, 0.4);
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-        .btn-run:hover { background: #e01e63; }
-
-        .btn-toggle-console {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-        .btn-toggle-console:hover { background: rgba(255, 255, 255, 0.25); }
-
-        main {
-            flex: 1;
-            display: flex;
-            position: relative;
-            overflow: hidden;
-            z-index: 2;
-            height: calc(100vh - 48px);
-        }
-
-        .editor-section {
-            width: 55%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            transition: width 0.3s ease;
-            overflow: hidden;
-        }
-        .editor-section.full-width { width: 100%; }
-
-        .tab-bar {
-            height: 36px;
-            min-height: 36px;
-            background: rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            padding-left: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background-color: #2d2d2d;
             overflow-x: auto;
-            overflow-y: hidden;
+            border-bottom: 1px solid #333;
             flex-shrink: 0;
         }
         .tab {
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.6);
-            padding: 6px 12px;
-            font-size: 13px;
-            border-radius: 4px 4px 0 0;
+            padding: 10px 20px;
+            background-color: #2d2d2d;
+            color: #969696;
+            border-right: 1px solid #252526;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
-            cursor: grab;
+            gap: 10px;
+            font-size: 14px;
             user-select: none;
-            margin-right: 4px;
-            border-bottom: 2px solid transparent;
-            transition: background 0.2s, opacity 0.2s;
-            white-space: nowrap;
-            flex-shrink: 0;
         }
-        .tab:active { cursor: grabbing; }
         .tab.active {
-            background: rgba(255, 255, 255, 0.15);
-            color: #ffffff;
-            border-bottom: 2px solid #3b82f6;
+            background-color: #1e1e1e;
+            color: #fff;
+            border-top: 2px solid #007acc;
         }
-        .tab.dragging { opacity: 0.4; }
-        .tab.drag-over { border-left: 2px solid #3b82f6; }
-        .tab-close {
-            font-size: 12px; opacity: 0.6; padding: 0 2px; border-radius: 3px;
+        .tab .close-btn {
+            font-size: 12px;
+            padding: 2px 5px;
+            border-radius: 3px;
         }
-        .tab-close:hover { opacity: 1; background: rgba(255, 255, 255, 0.2); }
-        .btn-add-tab {
-            background: rgba(255, 255, 255, 0.1); color: #ffffff; border: none;
-            width: 24px; height: 24px; border-radius: 4px; cursor: pointer;
-            font-size: 16px; display: flex; align-items: center; justify-content: center;
-            margin-left: 4px; transition: 0.2s; flex-shrink: 0;
+        .tab .close-btn:hover {
+            background-color: #444;
         }
-        .btn-add-tab:hover { background: rgba(255, 255, 255, 0.25); }
-
-        .context-menu {
-            display: none; position: fixed; z-index: 10000; background: #252526;
-            border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); padding: 4px 0; width: 120px;
+        .add-tab-btn {
+            padding: 10px 15px;
+            background-color: transparent;
+            color: #969696;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
         }
-        .context-menu-item {
-            padding: 6px 12px; font-size: 13px; color: #ffffff; cursor: pointer; transition: 0.15s;
+        .add-tab-btn:hover {
+            color: #fff;
+            background-color: #333;
         }
-        .context-menu-item:hover { background: #04395e; }
-
-        #editor-container { flex: 1; width: 100%; height: calc(100% - 36px); }
-
-        .console-section {
-            width: 45%; height: 100%; background: rgba(15, 15, 22, 0.35);
-            backdrop-filter: blur(6px); border-left: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex; flex-direction: column; transition: transform 0.3s ease, width 0.3s ease; overflow: hidden;
+        .editor-container {
+            flex-grow: 1;
+            position: relative;
+            background-color: #1e1e1e;
         }
-        .console-section.clear-bg { background: transparent !important; backdrop-filter: none !important; }
-        .console-section.hidden { display: none; }
-
-        .console-tab-bar {
-            height: 36px; min-height: 36px; background: rgba(0, 0, 0, 0.25);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); flex-shrink: 0;
-        }
-        .console-tab {
-            color: #ffffff; font-size: 12px; padding: 4px 10px; font-weight: bold;
-            background: rgba(255, 255, 255, 0.12); border-radius: 4px;
-        }
-        .console-actions { display: flex; gap: 6px; }
-        .btn-console-act {
-            background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.15); padding: 3px 8px; border-radius: 4px;
-            font-size: 11px; cursor: pointer; transition: 0.2s;
-        }
-        .btn-console-act:hover { background: rgba(255, 255, 255, 0.25); color: #ffffff; }
-
-        #output-container {
-            flex: 1; padding: 16px; color: #ffffff; font-family: 'Consolas', monospace;
-            font-size: 14px; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-        }
-
-        .crop-modal, .shortcut-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); z-index: 99999;
-            flex-direction: column; align-items: center; justify-content: center; padding: 20px;
-        }
-        .shortcut-modal-content {
-            width: 420px; max-width: 90vw; background: #1e1e24; border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.15); padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            display: flex; flex-direction: column; gap: 16px; color: #ffffff;
-        }
-        .shortcut-modal-title {
-            font-size: 16px; font-weight: bold; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
-        }
-        .shortcut-list { display: flex; flex-direction: column; gap: 10px; }
-        .shortcut-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-        .shortcut-key {
-            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #3b82f6; font-weight: bold;
-        }
-
-        .crop-modal-content {
-            width: 800px; max-width: 90vw; background: #18181b; border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.15); padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            display: flex; flex-direction: column; align-items: center; gap: 16px;
-        }
-        .canvas-wrapper {
-            width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px;
-            overflow: hidden; position: relative; cursor: grab; border: 2px dashed rgba(255, 255, 255, 0.3);
-        }
-        #previewCanvas { width: 100%; height: 100%; display: block; }
-        .controls-panel {
-            width: 100%; display: flex; flex-direction: column; gap: 12px;
-            background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 8px;
-        }
-        .control-group { display: flex; align-items: center; gap: 12px; color: #ffffff; font-size: 13px; }
-        .control-group label { width: 80px; font-weight: 500; }
-        .control-group input[type="range"] { flex: 1; cursor: pointer; accent-color: #3b82f6; }
-        .crop-modal-actions { width: 100%; display: flex; justify-content: flex-end; gap: 12px; }
-        .btn-crop-confirm {
-            background: #3b82f6; color: white; border: none; padding: 8px 24px;
-            border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;
-        }
-        .btn-crop-confirm:hover { background: #2563eb; }
-        .btn-crop-cancel {
-            background: rgba(255, 255, 255, 0.2); color: white; border: none;
-            padding: 8px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s;
-        }
-        .btn-crop-cancel:hover { background: rgba(255, 255, 255, 0.3); }
-
-        .monaco-editor, .monaco-editor-background { background-color: transparent !important; }
-        .monaco-editor .margin { background-color: rgba(0, 0, 0, 0.25) !important; }
-        .monaco-editor .view-line > span {
-            background-color: rgba(20, 20, 20, 0.85) !important;
-            box-shadow: 2px 0 0 rgba(20, 20, 20, 0.85), -2px 0 0 rgba(20, 20, 20, 0.85);
-            border-radius: 2px;
-        }
-        .monaco-editor .current-line {
-            background: rgba(255, 0, 0, 0.22) !important; border: 1px solid rgba(255, 50, 50, 0.4) !important;
-        }
-        .monaco-editor .margin-view-overlays .line-numbers.active-line-number {
-            color: #ff3344 !important; font-weight: bold !important; text-shadow: 0 0 6px rgba(255, 51, 68, 0.8);
-        }
-        .monaco-editor .cursor {
-            background-color: #ff3344 !important; border-color: #ff3344 !important;
-            box-shadow: 0 0 8px #ff3344; animation: cursorBlinkEffect 1s infinite ease-in-out;
-        }
-        @keyframes cursorBlinkEffect {
-            0%, 50% { opacity: 1; }
-            50.1%, 100% { opacity: 0; }
-        }
-        @keyframes redLineNumberBlink {
-            0%, 100% { color: #ff3344 !important; font-weight: bold !important; text-shadow: 0 0 8px rgba(255, 51, 68, 0.9); }
-            50% { color: #55111a !important; font-weight: bold !important; text-shadow: none; }
-        }
-        .monaco-editor .margin-view-overlays .line-numbers.error-line-number {
-            animation: redLineNumberBlink 0.8s infinite ease-in-out !important;
+        textarea {
+            width: 100%;
+            height: 100%;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            border: none;
+            padding: 15px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+            tab-size: 4;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="header-left">
-            <div class="custom-logo"></div>
-            <div class="error-badge" id="errorBadge">0번 줄에 오류가 있어서 실행할 수 없습니다!</div>
-        </div>
-        <div class="header-right">
-            <button class="btn-shortcut" onclick="openShortcutModal()">단축키 안내</button>
-            <button class="btn-dim" id="dimBtn" onclick="toggleBgDim()">배경 어둡게</button>
-            <button class="btn-custom-bg" onclick="triggerBgUpload()">배경 커스텀</button>
-            <button class="btn-reset-bg" id="resetBgBtn" onclick="resetCustomBg()">배경 리셋</button>
-            <input type="file" id="bgFileInput" accept="image/*" style="display: none;" onchange="handleBgSelect(event)">
-            
-            <div class="lang-dropdown-container">
-                <span class="notice-text" id="langNoticeText" onclick="toggleLangMenu(event)">현재 언어: Python (.py) ▼</span>
-                <div class="lang-menu" id="langMenu">
-                    <div class="lang-menu-item" onclick="changeLanguage('python', 'main.py')">Python (.py)</div>
-                    <div class="lang-menu-item" onclick="changeLanguage('javascript', 'script.js')">JavaScript (.js)</div>
-                </div>
-            </div>
-
-            <button class="btn-run" onclick="runCode()">이거 누르면 고기를 굽는 마술사가 나옴(실행)</button>
-            <button class="btn-toggle-console" id="consoleToggleBtn" onclick="toggleConsole()">콘솔창 닫기 ✕</button>
-        </div>
+        <img src="./logo.png" alt="코드를 굽는 마술사 로고">
     </header>
 
-    <main>
-        <div class="editor-section" id="editorSection">
-            <div class="tab-bar" id="tabBar">
-                <button class="btn-add-tab" onclick="addNewTab()" title="새 파일 추가">+</button>
-            </div>
-            <div id="editor-container"></div>
-        </div>
-
-        <div class="console-section" id="consoleSection">
-            <div class="console-tab-bar">
-                <div class="console-tab">콘솔</div>
-                <div class="console-actions">
-                    <button class="btn-console-act" id="btnConsoleBg" onclick="toggleConsoleBg()">콘솔 배경 끄기</button>
-                    <button class="btn-console-act" onclick="copyConsoleOutput()">복사</button>
-                    <button class="btn-console-act" onclick="clearConsoleOutput()">지우기</button>
-                </div>
-            </div>
-            <div id="output-container">야 너 뭐하는 놈이야
-(실행버튼을 누르면 실행 내용이 이곳에 표시됩니다)</div>
-        </div>
-    </main>
-
-    <div class="shortcut-modal" id="shortcutModal" onclick="closeShortcutModal(event)">
-        <div class="shortcut-modal-content" onclick="event.stopPropagation()">
-            <div class="shortcut-modal-title">
-                <span>단축키 안내</span>
-                <span style="cursor: pointer; opacity: 0.7;" onclick="closeShortcutModal()">✕</span>
-            </div>
-            <div class="shortcut-list">
-                <div class="shortcut-item">
-                    <span>코드 실행</span>
-                    <span class="shortcut-key">Ctrl + Enter</span>
-                </div>
-                <div class="shortcut-item">
-                    <span>자동 완성</span>
-                    <span class="shortcut-key">Ctrl + Space</span>
-                </div>
-                <div class="shortcut-item">
-                    <span>한 줄 주석 처리</span>
-                    <span class="shortcut-key">Ctrl + /</span>
-                </div>
-                <div class="shortcut-info-section">
-                    <div class="shortcut-item">
-                        <span>만든 이</span>
-                        <span class="shortcut-info-value">고기를 굽는 마술사</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="tab-container" id="tabContainer">
+        <!-- 탭들이 동적으로 생성됩니다 -->
+        <button class="add-tab-btn" id="addTabBtn" title="새 탭 추가">+</button>
     </div>
 
-    <div class="crop-modal" id="cropModal">
-        <div class="crop-modal-content">
-            <div class="canvas-wrapper" id="canvasWrapper">
-                <canvas id="previewCanvas" width="1280" height="720"></canvas>
-            </div>
-            <div class="controls-panel">
-                <div class="control-group">
-                    <label for="sliderX">좌우 이동</label>
-                    <input type="range" id="sliderX" min="-500" max="500" value="0" oninput="updateCanvas()">
-                </div>
-                <div class="control-group">
-                    <label for="sliderY">상하 이동</label>
-                    <input type="range" id="sliderY" min="-500" max="500" value="0" oninput="updateCanvas()">
-                </div>
-                <div class="control-group">
-                    <label for="sliderZoom">확대/축소</label>
-                    <input type="range" id="sliderZoom" min="50" max="250" value="100" oninput="updateCanvas()">
-                </div>
-            </div>
-            <div class="crop-modal-actions">
-                <button class="btn-crop-cancel" onclick="closeCropModal()">취소</button>
-                <button class="btn-crop-confirm" onclick="applyCroppedBg()">배경 적용</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="contextMenu" class="context-menu">
-        <div class="context-menu-item" onclick="renameSelectedTab()">이름 변경</div>
-        <div class="context-menu-item" id="menuDelete" onclick="deleteSelectedTab()">삭제</div>
+    <div class="editor-container">
+        <textarea id="codeEditor" placeholder="코드를 입력하세요..."></textarea>
     </div>
 
     <script>
-        window.addEventListener('keydown', function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
-                e.preventDefault();
-                const outputArea = document.getElementById("output-container");
-                outputArea.innerText = "Error: Ctrl + P(인쇄) 단축키는 사용할 수 없습니다. 코드를 실행하려면 Ctrl + Enter를 누르세요.";
-            }
-        });
-
-        window.print = function() {
-            const outputArea = document.getElementById("output-container");
-            outputArea.innerText = "Error: 브라우저 인쇄(PDF 저장 등) 기능이 차단되었습니다.";
+        const STORAGE_KEY = 'multi_editor_data_v6';
+        
+        let state = {
+            tabs: [
+                { id: '1', title: 'main.py', content: 'print("아 똥싸고 싶다!")' }
+            ],
+            activeTabId: '1'
         };
 
-        let editor;
-        let files = {}; 
-        let tabOrder = [];
-        let activeFileName = "main.py";
-        let targetMenuFile = null;
-        let draggedFileName = null;
-        let currentDecorations = []; 
-
-        const DEFAULT_BG = "https://i.imgur.com/bcT0bda.jpeg";
-        const STORAGE_KEY = "multi_editor_data_v6";
-        const DEFAULT_CONSOLE_TEXT = "야 너 뭐하는 놈이야\n(실행버튼을 누르면 실행 내용이 이곳에 표시됩니다)";
-
-        let loadedImg = null;
-        let isDragging = false;
-        let startX, startY;
-
-        function getLanguageByFilename(filename) {
-            if (filename.endsWith('.py')) return 'python';
-            if (filename.endsWith('.js')) return 'javascript';
-            return 'python';
-        }
-
-        function updateNoticeText() {
-            const notice = document.getElementById("langNoticeText");
-            const lang = getLanguageByFilename(activeFileName);
-            if (lang === 'python') notice.innerText = "현재 언어: Python (.py) ▼";
-            else if (lang === 'javascript') notice.innerText = "현재 언어: JavaScript (.js) ▼";
-            else notice.innerText = `현재 언어: ${activeFileName} ▼`;
-        }
-
-        function toggleLangMenu(e) {
-            e.stopPropagation();
-            const menu = document.getElementById("langMenu");
-            menu.style.display = (menu.style.display === "block") ? "none" : "block";
-        }
-
-        function changeLanguage(lang, sampleFileName) {
-            document.getElementById("langMenu").style.display = "none";
-            
-            const currentModel = files[activeFileName].model;
-            const currentCode = currentModel.getValue();
-            const currentConsole = document.getElementById("output-container").innerText;
-
-            currentModel.dispose();
-            delete files[activeFileName];
-
-            const idx = tabOrder.indexOf(activeFileName);
-            if (idx !== -1) {
-                tabOrder[idx] = sampleFileName;
-            } else {
-                tabOrder.push(sampleFileName);
-            }
-
-            activeFileName = sampleFileName;
-
-            const newModel = monaco.editor.createModel(currentCode, lang, monaco.Uri.parse(`inmemory://model/${activeFileName}`));
-            files[activeFileName] = {
-                model: newModel,
-                consoleOutput: currentConsole
-            };
-
-            newModel.onDidChangeContent(() => {
-                clearErrorState();
-                saveToStorage();
-            });
-
-            editor.setModel(newModel);
-            renderTabs();
-            updateNoticeText();
-            saveToStorage();
-        }
-
-        function openShortcutModal() { document.getElementById("shortcutModal").style.display = "flex"; }
-        function closeShortcutModal() { document.getElementById("shortcutModal").style.display = "none"; }
-        function toggleConsoleBg() {
-            document.getElementById("consoleSection").classList.toggle("clear-bg");
-            saveToStorage();
-        }
-
-        function clearErrorState() {
-            const badge = document.getElementById("errorBadge");
-            badge.style.display = "none";
-            badge.innerText = "";
-            if (editor) currentDecorations = editor.deltaDecorations(currentDecorations, []);
-        }
-
-        function highlightErrorLines(lineNumbers) {
-            if (!editor || !lineNumbers || lineNumbers.length === 0) return;
-            const sortedLines = Array.from(new Set(lineNumbers)).sort((a, b) => a - b);
-            const badge = document.getElementById("errorBadge");
-            badge.innerText = `${sortedLines.join(",")} 줄에 오류가 있어서 실행할 수 없습니다!`;
-            badge.style.display = "inline-block";
-
-            const newDecorations = sortedLines.map(line => ({
-                range: new monaco.Range(line, 1, line, 1),
-                options: { isWholeLine: false, lineNumberClassName: 'error-line-number' }
-            }));
-            currentDecorations = editor.deltaDecorations(currentDecorations, newDecorations);
-            editor.revealLineInCenter(sortedLines[0]);
-        }
-
-        function saveToStorage() {
-            if (files[activeFileName]) {
-                files[activeFileName].consoleOutput = document.getElementById("output-container").innerText;
-            }
-            const isDark = document.documentElement.classList.contains("dark-bg");
-            const isConsoleClear = document.getElementById("consoleSection").classList.contains("clear-bg");
-            
-            const dataToSave = {
-                activeFileName: activeFileName,
-                tabOrder: tabOrder,
-                isDarkBg: isDark,
-                isConsoleClearBg: isConsoleClear,
-                files: {}
-            };
-
-            Object.keys(files).forEach(fileName => {
-                dataToSave.files[fileName] = {
-                    code: files[fileName].model.getValue(),
-                    consoleOutput: files[fileName].consoleOutput || DEFAULT_CONSOLE_TEXT
-                };
-            });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-        }
-
-        function loadFromStorage() {
-            const savedData = localStorage.getItem(STORAGE_KEY);
-            if (!savedData) return null;
-            try { return JSON.parse(savedData); } catch (e) { return null; }
-        }
-
-        function initBackground() {
-            const savedBg = localStorage.getItem("custom_bg_image");
-            const resetBtn = document.getElementById("resetBgBtn");
-            if (savedBg) {
-                document.body.style.backgroundImage = `url("${savedBg}")`;
-                resetBtn.style.display = "inline-block";
-            } else {
-                document.body.style.backgroundImage = `url("${DEFAULT_BG}")`;
-                resetBtn.style.display = "none";
-            }
-        }
-
-        function triggerBgUpload() { document.getElementById("bgFileInput").click(); }
-        function handleBgSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                loadedImg = new Image();
-                loadedImg.onload = function() {
-                    document.getElementById("cropModal").style.display = "flex";
-                    document.getElementById("sliderX").value = 0;
-                    document.getElementById("sliderY").value = 0;
-                    document.getElementById("sliderZoom").value = 100;
-                    updateCanvas();
-                };
-                loadedImg.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-            event.target.value = "";
-        }
-
-        function updateCanvas() {
-            if (!loadedImg) return;
-            const canvas = document.getElementById("previewCanvas");
-            const ctx = canvas.getContext("2d");
-            const offsetX = parseFloat(document.getElementById("sliderX").value);
-            const offsetY = parseFloat(document.getElementById("sliderY").value);
-            const zoom = parseFloat(document.getElementById("sliderZoom").value) / 100;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const scale = Math.max(canvas.width / loadedImg.width, canvas.height / loadedImg.height) * zoom;
-            const drawW = loadedImg.width * scale;
-            const drawH = loadedImg.height * scale;
-            const drawX = (canvas.width - drawW) / 2 + offsetX;
-            const drawY = (canvas.height - drawH) / 2 + offsetY;
-            ctx.drawImage(loadedImg, drawX, drawY, drawW, drawH);
-        }
-
-        const wrapper = document.getElementById("canvasWrapper");
-        wrapper.addEventListener("mousedown", (e) => { isDragging = true; startX = e.clientX; startY = e.clientY; });
-        window.addEventListener("mousemove", (e) => {
-            if (!isDragging) return;
-            const dx = e.clientX - startX; const dy = e.clientY - startY;
-            startX = e.clientX; startY = e.clientY;
-            const sliderX = document.getElementById("sliderX");
-            const sliderY = document.getElementById("sliderY");
-            sliderX.value = parseFloat(sliderX.value) + dx * 2;
-            sliderY.value = parseFloat(sliderY.value) + dy * 2;
-            updateCanvas();
-        });
-        window.addEventListener("mouseup", () => { isDragging = false; });
-
-        function applyCroppedBg() {
-            const canvas = document.getElementById("previewCanvas");
-            try {
-                const croppedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
-                localStorage.setItem("custom_bg_image", croppedDataUrl);
-                initBackground();
-            } catch (e) { alert("이미지를 적용하는데 실패했습니다."); }
-            closeCropModal();
-            saveToStorage();
-        }
-        function closeCropModal() { document.getElementById("cropModal").style.display = "none"; loadedImg = null; }
-        function resetCustomBg() { localStorage.removeItem("custom_bg_image"); initBackground(); saveToStorage(); }
-        function toggleBgDim() {
-            const isDark = document.documentElement.classList.toggle("dark-bg");
-            document.body.classList.toggle("dark-bg", isDark);
-            document.getElementById("dimBtn").innerText = isDark ? "배경 밝게" : "배경 어둡게";
-            saveToStorage();
-        }
-
-        function clearConsoleOutput() { document.getElementById("output-container").innerText = ""; clearErrorState(); saveToStorage(); }
-        function copyConsoleOutput() {
-            const text = document.getElementById("output-container").innerText;
-            if (!text) return;
-            navigator.clipboard.writeText(text).then(() => {
-                const copyBtn = event.target;
-                const orig = copyBtn.innerText;
-                copyBtn.innerText = "복사됨!";
-                setTimeout(() => { copyBtn.innerText = orig; }, 1200);
-            });
-        }
-
-        window.addEventListener("resize", () => { if (editor) editor.layout(); });
-
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-        require(['vs/editor/editor.main'], function() {
-            initBackground();
-            const savedState = loadFromStorage();
-
-            if (savedState) {
-                if (savedState.isDarkBg) {
-                    document.body.classList.add("dark-bg");
-                    document.getElementById("dimBtn").innerText = "배경 밝게";
-                }
-                if (savedState.isConsoleClearBg) {
-                    document.getElementById("consoleSection").classList.add("clear-bg");
-                }
-                if (savedState.files && Object.keys(savedState.files).length > 0) {
-                    activeFileName = savedState.activeFileName || "main.py";
-                    Object.keys(savedState.files).forEach(fileName => {
-                        if (fileName.endsWith('.html')) return;
-                        const fileData = savedState.files[fileName];
-                        const content = (typeof fileData === 'string') ? fileData : fileData.code;
-                        const consoleText = (typeof fileData === 'object' && fileData.consoleOutput !== undefined) ? fileData.consoleOutput : DEFAULT_CONSOLE_TEXT;
-
-                        const lang = getLanguageByFilename(fileName);
-                        const model = monaco.editor.createModel(content, lang, monaco.Uri.parse(`inmemory://model/${fileName}`));
-                        files[fileName] = { model: model, consoleOutput: consoleText };
-                        model.onDidChangeContent(() => { clearErrorState(); saveToStorage(); });
-                    });
-                    tabOrder = savedState.tabOrder && Array.isArray(savedState.tabOrder) ? savedState.tabOrder.filter(fn => files[fn] && !fn.endsWith('.html')) : Object.keys(files);
-                    Object.keys(files).forEach(fn => { if (!tabOrder.includes(fn)) tabOrder.push(fn); });
-                    if (!files[activeFileName]) activeFileName = tabOrder[0] || "main.py";
-                }
-            } else {
-                const mainModel = monaco.editor.createModel('print("아 똥싸고 싶다!")', 'python', monaco.Uri.parse('inmemory://model/main.py'));
-                files["main.py"] = { model: mainModel, consoleOutput: DEFAULT_CONSOLE_TEXT };
-                tabOrder = ["main.py"];
-                mainModel.onDidChangeContent(() => { clearErrorState(); saveToStorage(); });
-            }
-
-            editor = monaco.editor.create(document.getElementById('editor-container'), {
-                model: files[activeFileName].model,
-                theme: 'vs-dark',
-                fontSize: 14,
-                fontFamily: 'Consolas, monospace',
-                cursorBlinking: 'blink',
-                automaticLayout: true,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                renderLineHighlight: 'all',
-                quickSuggestions: { other: true, comments: true, strings: true },
-                suggestOnTriggerCharacters: true,
-                acceptSuggestionOnEnter: 'on',
-                tabCompletion: 'on',
-                wordBasedSuggestions: 'all'
-            });
-
-            monaco.languages.registerCompletionItemProvider('python', {
-                provideCompletionItems: function(model, position) {
-                    const wordInfo = model.getWordUntilPosition(position);
-                    const range = {
-                        startLineNumber: position.lineNumber,
-                        endLineNumber: position.lineNumber,
-                        startColumn: wordInfo.startColumn,
-                        endColumn: wordInfo.endColumn
-                    };
-                    return {
-                        suggestions: [
-                            { label: 'def', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'def ${1:function_name}(${2:args}):\n\t${3:# TODO}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'for', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'for ${1:item} in ${2:iterable}:\n\t${3:# TODO}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'if', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'if ${1:condition}:\n\t${2:# TODO}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'elif', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'elif ${1:condition}:\n\t${2:# TODO}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'else', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'else:\n\t${1:# TODO}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'while', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'while ${1:condition}:\n\t${2:# TODO}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'return', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'return $1', range: range },
-                            { label: 'pass', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'pass', range: range },
-                            { label: 'break', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'break', range: range },
-                            { label: 'continue', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'continue', range: range },
-                            { label: 'import', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'import $1', range: range },
-                            { label: 'from', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'from $1 import $2', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'class', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'class ${1:ClassName}:\n\tdef __init__(self, ${2:args}):\n\t\t${3:# TODO}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'try', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'try:\n\t${1:# TODO}\nexcept ${2:Exception} as ${3:e}:\n\t${4:print(e)}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'with', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'with ${1:expr} as ${2:var}:\n\t${3:# TODO}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'lambda', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'lambda ${1:args}: ${2:expr}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'in', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'in', range: range },
-                            { label: 'is', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'is', range: range },
-                            { label: 'not', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'not ', range: range },
-                            { label: 'and', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'and ', range: range },
-                            { label: 'or', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'or ', range: range },
-                            { label: 'True', kind: monaco.languages.CompletionItemKind.Value, insertText: 'True', range: range },
-                            { label: 'False', kind: monaco.languages.CompletionItemKind.Value, insertText: 'False', range: range },
-                            { label: 'None', kind: monaco.languages.CompletionItemKind.Value, insertText: 'None', range: range },
-                            { label: 'print', kind: monaco.languages.CompletionItemKind.Function, insertText: 'print($1)', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'len', kind: monaco.languages.CompletionItemKind.Function, insertText: 'len($1)', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'range', kind: monaco.languages.CompletionItemKind.Function, insertText: 'range($1)', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'str', kind: monaco.languages.CompletionItemKind.Function, insertText: 'str($1)', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'int', kind: monaco.languages.CompletionItemKind.Function, insertText: 'int($1)', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'float', kind: monaco.languages.CompletionItemKind.Function, insertText: 'float($1)', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'list', kind: monaco.languages.CompletionItemKind.Function, insertText: 'list($1)', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'dict', kind: monaco.languages.CompletionItemKind.Function, insertText: 'dict($1)', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'set', kind: monaco.languages.CompletionItemKind.Function, insertText: 'set($1)', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'tuple', kind: monaco.languages.CompletionItemKind.Function, insertText: 'tuple($1)', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
-                            { label: 'input', kind: monaco.languages.CompletionItemKind.Function, insertText: 'input("$1")', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range }
-                        ]
-                    };
-                }
-            });
-
-            editor.onKeyUp((e) => {
-                const lang = getLanguageByFilename(activeFileName);
-                if (lang === 'python' && e.keyCode !== 9 && e.keyCode !== 3 && e.keyCode !== 2) {
-                    editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
-                }
-            });
-
-            document.getElementById("output-container").innerText = files[activeFileName].consoleOutput || DEFAULT_CONSOLE_TEXT;
-            updateNoticeText();
-
-            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() { runCode(); });
-            renderTabs();
-            saveToStorage();
-        });
-
-        function renderTabs() {
-            const tabBar = document.getElementById("tabBar");
-            tabBar.querySelectorAll(".tab").forEach(t => t.remove());
-            const addBtn = tabBar.querySelector(".btn-add-tab");
-
-            tabOrder.forEach(fileName => {
-                if (!files[fileName]) return;
-                const tab = document.createElement("div");
-                tab.className = `tab ${fileName === activeFileName ? 'active' : ''}`;
-                tab.setAttribute("draggable", "true");
-                tab.dataset.filename = fileName;
-                tab.onclick = () => switchTab(fileName);
-                
-                const title = document.createElement("span");
-                title.innerText = fileName;
-                tab.appendChild(title);
-
-                if (fileName !== "main.py") {
-                    const closeBtn = document.createElement("span");
-                    closeBtn.className = "tab-close";
-                    closeBtn.innerText = "✕";
-                    closeBtn.onclick = (e) => { e.stopPropagation(); closeTab(fileName); };
-                    tab.appendChild(closeBtn);
-                }
-
-                tab.oncontextmenu = (e) => { e.preventDefault(); showContextMenu(e, fileName); };
-                tab.addEventListener("dragstart", function() { draggedFileName = this.dataset.filename; this.classList.add("dragging"); });
-                tab.addEventListener("dragover", function(e) { e.preventDefault(); if (this.dataset.filename !== draggedFileName) this.classList.add("drag-over"); });
-                tab.addEventListener("dragleave", function() { this.classList.remove("drag-over"); });
-                tab.addEventListener("drop", function(e) {
-                    e.preventDefault();
-                    this.classList.remove("drag-over");
-                    const targetName = this.dataset.filename;
-                    if (!draggedFileName || draggedFileName === targetName) return;
-                    const dIdx = tabOrder.indexOf(draggedFileName), tIdx = tabOrder.indexOf(targetName);
-                    if (dIdx !== -1 && tIdx !== -1) {
-                        tabOrder.splice(dIdx, 1);
-                        tabOrder.splice(tIdx, 0, draggedFileName);
-                        renderTabs(); saveToStorage();
-                    }
-                });
-                tab.addEventListener("dragend", function() { this.classList.remove("dragging"); draggedFileName = null; });
-
-                tabBar.insertBefore(tab, addBtn);
-            });
-        }
-
-        function addNewTab() {
-            let num = 2;
-            while (files[`main.py${num}`]) num++;
-            const name = `main.py${num}`;
-            const newModel = monaco.editor.createModel('print("Hello!")', 'python', monaco.Uri.parse(`inmemory://model/${name}`));
-            files[name] = { model: newModel, consoleOutput: DEFAULT_CONSOLE_TEXT };
-            tabOrder.push(name);
-            newModel.onDidChangeContent(() => { clearErrorState(); saveToStorage(); });
-            switchTab(name);
-        }
-
-        window.addEventListener("click", () => {
-            document.getElementById("contextMenu").style.display = "none";
-            document.getElementById("langMenu").style.display = "none";
-        });
-
-        function showContextMenu(e, fileName) {
-            targetMenuFile = fileName;
-            const menu = document.getElementById("contextMenu");
-            document.getElementById("menuDelete").style.display = (fileName === "main.py") ? "none" : "block";
-            menu.style.left = `${e.clientX}px`; menu.style.top = `${e.clientY}px`; menu.style.display = "block";
-        }
-
-        function renameSelectedTab() {
-            if (!targetMenuFile) return;
-            let newName = prompt("새 파일명을 입력하세요:", targetMenuFile);
-            if (!newName || newName === targetMenuFile) return;
-            newName = newName.trim();
-            if (files[newName]) { alert("이미 존재하는 파일명입니다."); return; }
-
-            const oldData = files[targetMenuFile];
-            const oldModel = oldData.model;
-            const content = oldModel.getValue();
-            const consoleText = oldData.consoleOutput;
-            oldModel.dispose();
-            delete files[targetMenuFile];
-
-            const orderIdx = tabOrder.indexOf(targetMenuFile);
-            if (orderIdx !== -1) tabOrder[orderIdx] = newName;
-
-            const lang = getLanguageByFilename(newName);
-            const newModel = monaco.editor.createModel(content, lang, monaco.Uri.parse(`inmemory://model/${newName}`));
-            files[newName] = { model: newModel, consoleOutput: consoleText };
-            newModel.onDidChangeContent(() => { clearErrorState(); saveToStorage(); });
-
-            if (activeFileName === targetMenuFile) {
-                activeFileName = newName;
-                editor.setModel(newModel);
-            }
-            renderTabs(); updateNoticeText(); saveToStorage();
-        }
-
-        function deleteSelectedTab() {
-            if (!targetMenuFile || targetMenuFile === "main.py") return;
-            if (files[targetMenuFile]) { files[targetMenuFile].model.dispose(); delete files[targetMenuFile]; }
-            tabOrder = tabOrder.filter(fn => fn !== targetMenuFile);
-            if (activeFileName === targetMenuFile) {
-                activeFileName = "main.py";
-                editor.setModel(files["main.py"].model);
-                document.getElementById("output-container").innerText = files["main.py"].consoleOutput || DEFAULT_CONSOLE_TEXT;
-            }
-            clearErrorState(); renderTabs(); updateNoticeText(); saveToStorage();
-        }
-
-        function switchTab(fileName) {
-            if (!files[fileName] || activeFileName === fileName) return;
-            clearErrorState();
-            if (files[activeFileName]) files[activeFileName].consoleOutput = document.getElementById("output-container").innerText;
-
-            activeFileName = fileName;
-            editor.setModel(files[fileName].model);
-            document.getElementById("output-container").innerText = files[fileName].consoleOutput || DEFAULT_CONSOLE_TEXT;
-            renderTabs(); updateNoticeText(); saveToStorage();
-        }
-
-        function closeTab(fileName) {
-            if (fileName === "main.py") return;
-            if (files[fileName]) { files[fileName].model.dispose(); delete files[fileName]; }
-            tabOrder = tabOrder.filter(fn => fn !== fileName);
-            if (activeFileName === fileName) {
-                activeFileName = "main.py";
-                editor.setModel(files["main.py"].model);
-                document.getElementById("output-container").innerText = files["main.py"].consoleOutput || DEFAULT_CONSOLE_TEXT;
-            }
-            clearErrorState(); renderTabs(); updateNoticeText(); saveToStorage();
-        }
-
-        async function runCode() {
-            const outputArea = document.getElementById("output-container");
-            outputArea.innerText = "";
-            clearErrorState();
-
-            const code = files[activeFileName] ? files[activeFileName].model.getValue() : editor.getValue();
-            const lang = getLanguageByFilename(activeFileName);
-
-            if (lang === 'javascript') {
-                const isPythonCommand = /\b(print|def|len|range|str|int|float|list|dict|True|False|None)\b/.test(code);
-                if (isPythonCommand) {
-                    outputArea.innerText = "야임마 이건 파이썬 명령어라고!!!";
-                    saveToStorage();
-                    return;
-                }
-
-                let logs = [];
-                const originalConsoleLog = console.log;
-                console.log = function(...args) {
-                    logs.push(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg).join(" "));
-                    originalConsoleLog.apply(console, args);
-                };
-
+        function loadData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
                 try {
-                    const result = eval(code);
-                    if (logs.length > 0) {
-                        outputArea.innerText = logs.join("\n");
-                    } else if (result !== undefined) {
-                        outputArea.innerText = String(result);
-                    } else {
-                        outputArea.innerText = "(JavaScript 실행 완료 - 출력 없음)";
-                    }
-                } catch (err) {
-                    outputArea.innerText = err.toString();
-                } finally {
-                    console.log = originalConsoleLog;
+                    state = JSON.parse(saved);
+                } catch (e) {
+                    console.error('데이터 로드 실패', e);
                 }
-                saveToStorage();
-                return;
             }
+        }
 
-            if (lang === 'python') {
-                const isJSCommand = /\b(console\.log|let|const|var|System\.out\.println|public\s+class)\b/.test(code);
-                if (isJSCommand) {
-                    outputArea.innerText = "야임마 이건 자바 스크립트라고!!!";
-                    saveToStorage();
-                    return;
-                }
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
 
-                if (typeof Sk === "undefined") {
-                    outputArea.innerText = "Error: Skulpt 엔진이 로드되지 않았습니다.";
-                    saveToStorage();
-                    return;
-                }
+        const tabContainer = document.getElementById('tabContainer');
+        const addTabBtn = document.getElementById('addTabBtn');
+        const codeEditor = document.getElementById('codeEditor');
 
-                function outf(text) { outputArea.innerText += text; }
-                function builtinRead(x) {
-                    const cleanName = x.replace("./", "");
-                    if (files[cleanName]) return files[cleanName].model.getValue();
-                    if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined) {
-                        throw "File not found: '" + x + "'";
+        function render() {
+            // 기존 탭 요소들 제거 (추가 버튼 전까지)
+            document.querySelectorAll('.tab').forEach(el => el.remove());
+
+            state.tabs.forEach(tab => {
+                const tabEl = document.createElement('div');
+                tabEl.className = `tab ${tab.id === state.activeTabId ? 'active' : ''}`;
+                tabEl.innerHTML = `
+                    <span>${tab.title}</span>
+                    ${state.tabs.length > 1 ? '<span class="close-btn">×</span>' : ''}
+                `;
+
+                tabEl.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('close-btn')) {
+                        e.stopPropagation();
+                        closeTab(tab.id);
+                        return;
                     }
-                    return Sk.builtinFiles["files"][x];
-                }
-
-                Sk.configure({ output: outf, read: builtinRead, __future__: Sk.python3 });
-
-                const lines = code.split("\n");
-                const errorLines = [];
-                lines.forEach((line, idx) => {
-                    const lineNum = idx + 1;
-                    const trimmed = line.trim();
-                    if (/^(def|if|elif|else|for|while|class)\b/.test(trimmed) && !trimmed.endsWith(":") && !trimmed.startsWith("#")) {
-                        errorLines.push(lineNum);
-                    }
+                    switchTab(tab.id);
                 });
 
-                try {
-                    await Sk.importMainWithBody("<stdin>", false, code, true);
-                    if (errorLines.length > 0) {
-                        highlightErrorLines(errorLines);
-                    } else if (outputArea.innerText === "") {
-                        outputArea.innerText = "(출력 결과 없음)";
-                    }
-                } catch (err) {
-                    const errStr = err.toString();
-                    outputArea.innerText = errStr;
-                    const matches = [...errStr.matchAll(/line (\d+)/gi)];
-                    matches.forEach(m => { if (m[1]) errorLines.push(parseInt(m[1], 10)); });
-                    if (errorLines.length > 0) highlightErrorLines(errorLines);
-                }
-                saveToStorage();
-                return;
-            }
+                tabContainer.insertBefore(tabEl, addTabBtn);
+            });
 
-            outputArea.innerText = `[${lang}] 언어는 현재 직접 실행을 지원하지 않습니다.`;
-            saveToStorage();
+            const activeTab = state.tabs.find(t => t.id === state.activeTabId);
+            if (activeTab) {
+                codeEditor.value = activeTab.content;
+            }
+            saveData();
         }
 
-        function toggleConsole() {
-            const consoleSec = document.getElementById('consoleSection');
-            const editorSec = document.getElementById('editorSection');
-            const toggleBtn = document.getElementById('consoleToggleBtn');
-
-            if (consoleSec.classList.contains('hidden')) {
-                consoleSec.classList.remove('hidden');
-                editorSec.classList.remove('full-width');
-                toggleBtn.innerText = '콘솔창 닫기 ✕';
-            } else {
-                consoleSec.classList.add('hidden');
-                editorSec.classList.add('full-width');
-                toggleBtn.innerText = '콘솔창 열기 💬';
-            }
-            setTimeout(() => { if(editor) editor.layout(); }, 300);
+        function switchTab(id) {
+            state.activeTabId = id;
+            render();
         }
+
+        function addTab() {
+            const newId = Date.now().toString();
+            const newTitle = `script_${state.tabs.length + 1}.py`;
+            state.tabs.push({ id: newId, title: newTitle, content: '' });
+            state.activeTabId = newId;
+            render();
+        }
+
+        function closeTab(id) {
+            if (state.tabs.length <= 1) return;
+            const index = state.tabs.findIndex(t => t.id === id);
+            state.tabs.splice(index, 1);
+            if (state.activeTabId === id) {
+                state.activeTabId = state.tabs[state.tabs.length - 1].id;
+            }
+            render();
+        }
+
+        codeEditor.addEventListener('input', (e) => {
+            const activeTab = state.tabs.find(t => t.id === state.activeTabId);
+            if (activeTab) {
+                activeTab.content = e.target.value;
+                saveData();
+            }
+        });
+
+        addTabBtn.addEventListener('click', addTab);
+
+        // 초기 실행
+        loadData();
+        render();
     </script>
 </body>
 </html>
