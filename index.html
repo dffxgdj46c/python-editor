@@ -2,213 +2,1426 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>코드를 굽는 마술사</title>
-    <!-- 파비콘 설정 -->
-    <link rel="icon" href="./favicon.ico">
+    <link rel="icon" href="https://cdn.phototourl.com/free/2026-08-07-7a0f0824-2fe2-4110-b30f-9cf4864c49f7.png" type="image/x-icon">
+    
+    <script>
+        (function() {
+            try {
+                const savedData = localStorage.getItem("python_editor_data");
+                if (savedData) {
+                    const parsed = JSON.parse(savedData);
+                    if (parsed && parsed.isDarkBg) {
+                        document.documentElement.classList.add("dark-bg");
+                    }
+                }
+            } catch (e) {}
+        })();
+    </script>
+
+    <!-- Monaco Editor CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+    
+    <!-- Skulpt CDN -->
+    <script src="https://unpkg.com/skulpt@1.2.0/dist/skulpt.min.js"></script>
+    <script src="https://unpkg.com/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1e1e1e;
-            color: #d4d4d4;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            background: url("https://i.imgur.com/bcT0bda.jpeg") no-repeat center center fixed;
+            background-size: cover;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             overflow: hidden;
+            position: relative;
         }
+
+        body::before,
+        html.dark-bg body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1;
+        }
+
+        body.dark-bg::before,
+        html.dark-bg body::before {
+            opacity: 1;
+        }
+
         header {
-            background-color: #252526;
-            padding: 10px 20px;
+            height: 48px;
+            min-height: 48px;
+            background: rgba(15, 15, 20, 0.45);
+            backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
-            justify-content: center;
-            border-bottom: 1px solid #333;
-        }
-        header img {
-            max-height: 50px;
-            object-fit: contain;
-        }
-        .tab-container {
-            display: flex;
-            background-color: #2d2d2d;
+            justify-content: space-between;
+            padding: 0 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+            flex-wrap: nowrap;
             overflow-x: auto;
-            border-bottom: 1px solid #333;
+            overflow-y: hidden;
+        }
+        header::-webkit-scrollbar {
+            display: none;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .custom-logo {
+            height: 28px;
+            content: url("https://cdn.phototourl.com/free/2026-08-06-9358a263-6e59-4030-ac2b-31bb409368d7.png");
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        .error-badge {
+            display: none;
+            background: rgba(255, 51, 68, 0.25);
+            color: #ff4d4d;
+            border: 1px solid rgba(255, 51, 68, 0.5);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: -0.2px;
+            white-space: nowrap;
+            animation: errorBadgePulse 2s infinite ease-in-out;
+        }
+
+        @keyframes errorBadgePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .notice-text {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            letter-spacing: -0.2px;
+            white-space: nowrap;
+        }
+
+        .btn-dim, .btn-custom-bg, .btn-reset-bg, .btn-shortcut {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .btn-dim:hover, .btn-custom-bg:hover, .btn-reset-bg:hover, .btn-shortcut:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .btn-reset-bg {
+            display: none;
+            background: rgba(255, 85, 85, 0.3);
+            border-color: rgba(255, 85, 85, 0.4);
+        }
+        .btn-reset-bg:hover {
+            background: rgba(255, 85, 85, 0.5);
+        }
+
+        .btn-run {
+            background: #ff2a74;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(255, 42, 116, 0.4);
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .btn-run:hover { background: #e01e63; }
+
+        .btn-toggle-console {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .btn-toggle-console:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+            z-index: 2;
+            height: calc(100vh - 48px);
+        }
+
+        .editor-section {
+            width: 55%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+            overflow: hidden;
+        }
+        .editor-section.full-width {
+            width: 100%;
+        }
+
+        .tab-bar {
+            height: 36px;
+            min-height: 36px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+            overflow-y: hidden;
             flex-shrink: 0;
         }
         .tab {
-            padding: 10px 20px;
-            background-color: #2d2d2d;
-            color: #969696;
-            border-right: 1px solid #252526;
-            cursor: pointer;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.6);
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 4px 4px 0 0;
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 14px;
+            gap: 8px;
+            cursor: grab;
             user-select: none;
+            margin-right: 4px;
+            border-bottom: 2px solid transparent;
+            transition: background 0.2s, opacity 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .tab:active {
+            cursor: grabbing;
         }
         .tab.active {
-            background-color: #1e1e1e;
-            color: #fff;
-            border-top: 2px solid #007acc;
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            border-bottom: 2px solid #3b82f6;
         }
-        .tab .close-btn {
+        .tab.dragging {
+            opacity: 0.4;
+        }
+        .tab.drag-over {
+            border-left: 2px solid #3b82f6;
+        }
+        .tab-close {
             font-size: 12px;
-            padding: 2px 5px;
+            opacity: 0.6;
+            padding: 0 2px;
             border-radius: 3px;
         }
-        .tab .close-btn:hover {
-            background-color: #444;
+        .tab-close:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
         }
-        .add-tab-btn {
-            padding: 10px 15px;
-            background-color: transparent;
-            color: #969696;
+        .btn-add-tab {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
             border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 4px;
+            transition: 0.2s;
+            flex-shrink: 0;
         }
-        .add-tab-btn:hover {
-            color: #fff;
-            background-color: #333;
+        .btn-add-tab:hover {
+            background: rgba(255, 255, 255, 0.25);
         }
-        .editor-container {
-            flex-grow: 1;
+
+        .context-menu {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            background: #252526;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            padding: 4px 0;
+            width: 120px;
+        }
+        .context-menu-item {
+            padding: 6px 12px;
+            font-size: 13px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .context-menu-item:hover {
+            background: #04395e;
+        }
+
+        #editor-container {
+            flex: 1;
+            width: 100%;
+            height: calc(100% - 36px);
+        }
+
+        .console-section {
+            width: 45%;
+            height: 100%;
+            background: rgba(15, 15, 22, 0.35);
+            backdrop-filter: blur(6px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, width 0.3s ease, background 0.2s ease, backdrop-filter 0.2s ease;
+            overflow: hidden;
+        }
+        .console-section.clear-bg {
+            background: transparent !important;
+            backdrop-filter: none !important;
+        }
+        .console-section.hidden {
+            display: none;
+        }
+
+        .console-tab-bar {
+            height: 36px;
+            min-height: 36px;
+            background: rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+            transition: background 0.2s ease;
+        }
+        .console-section.clear-bg .console-tab-bar {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .console-tab {
+            color: #ffffff;
+            font-size: 12px;
+            padding: 4px 10px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 4px;
+        }
+
+        .console-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .btn-console-act {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-console-act:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        #output-container {
+            flex: 1;
+            padding: 16px;
+            color: #ffffff;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .crop-modal, .shortcut-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .shortcut-modal-content {
+            width: 420px;
+            max-width: 90vw;
+            background: #1e1e24;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            color: #ffffff;
+        }
+
+        .shortcut-modal-title {
+            font-size: 16px;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .shortcut-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .shortcut-key {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #3b82f6;
+            font-weight: bold;
+        }
+
+        .shortcut-info-section {
+            border-top: 1px dashed rgba(255, 255, 255, 0.15);
+            padding-top: 12px;
+            margin-top: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .shortcut-info-value {
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+
+        .crop-modal-content {
+            width: 800px;
+            max-width: 90vw;
+            background: #18181b;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .canvas-wrapper {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
             position: relative;
-            background-color: #1e1e1e;
+            cursor: grab;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
         }
-        textarea {
+        .canvas-wrapper:active {
+            cursor: grabbing;
+        }
+        
+        #previewCanvas {
             width: 100%;
             height: 100%;
-            background-color: #1e1e1e;
-            color: #d4d4d4;
+            display: block;
+        }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 14px;
+            border-radius: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #ffffff;
+            font-size: 13px;
+        }
+        .control-group label {
+            width: 80px;
+            font-weight: 500;
+        }
+        .control-group input[type="range"] {
+            flex: 1;
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+
+        .crop-modal-actions {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .btn-crop-confirm {
+            background: #3b82f6;
+            color: white;
             border: none;
-            padding: 15px;
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 15px;
-            resize: none;
-            outline: none;
-            line-height: 1.5;
-            tab-size: 4;
+            padding: 8px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-crop-confirm:hover { background: #2563eb; }
+
+        .btn-crop-cancel {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-crop-cancel:hover { background: rgba(255, 255, 255, 0.3); }
+
+        .monaco-editor, 
+        .monaco-editor-background {
+            background-color: transparent !important;
+        }
+        .monaco-editor .margin {
+            background-color: rgba(0, 0, 0, 0.25) !important;
+        }
+
+        .monaco-editor .view-line > span {
+            background-color: rgba(20, 20, 20, 0.85) !important;
+            box-shadow: 2px 0 0 rgba(20, 20, 20, 0.85), -2px 0 0 rgba(20, 20, 20, 0.85);
+            border-radius: 2px;
+        }
+
+        .monaco-editor .current-line {
+            background: rgba(255, 0, 0, 0.22) !important;
+            border: 1px solid rgba(255, 50, 50, 0.4) !important;
+        }
+
+        .monaco-editor .margin-view-overlays .line-numbers.active-line-number {
+            color: #ff3344 !important;
+            font-weight: bold !important;
+            text-shadow: 0 0 6px rgba(255, 51, 68, 0.8);
+        }
+
+        .monaco-editor .cursor {
+            background-color: #ff3344 !important;
+            border-color: #ff3344 !important;
+            box-shadow: 0 0 8px #ff3344;
+            animation: cursorBlinkEffect 1s infinite steps(1);
+        }
+
+        @keyframes cursorBlinkEffect {
+            0%, 50% { opacity: 1; }
+            50.1%, 100% { opacity: 0; }
+        }
+
+        @keyframes redLineNumberBlink {
+            0%, 100% {
+                color: #ff3344 !important;
+                font-weight: bold !important;
+                text-shadow: 0 0 8px rgba(255, 51, 68, 0.9);
+            }
+            50% {
+                color: #55111a !important;
+                font-weight: bold !important;
+                text-shadow: none;
+            }
+        }
+
+        .monaco-editor .margin-view-overlays .line-numbers.error-line-number {
+            animation: redLineNumberBlink 0.8s infinite ease-in-out !important;
+        }
+
+        .monaco-editor .inputarea.ime-input {
+            background-color: rgba(20, 20, 20, 0.9) !important;
+            color: #ffffff !important;
+        }
+
+        .monaco-editor .suggest-widget {
+            background-color: #252526 !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+        }
+        .monaco-editor .suggest-widget .monaco-list-row {
+            color: #cccccc !important;
+        }
+        .monaco-editor .suggest-widget .monaco-list-row.focused {
+            background-color: #04395e !important;
+            color: #ffffff !important;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <img src="./logo.png" alt="코드를 굽는 마술사 로고">
+        <div class="header-left">
+            <div class="custom-logo"></div>
+            <div class="error-badge" id="errorBadge">0번 줄에 오류가 있어서 실행할 수 없습니다!</div>
+        </div>
+        <div class="header-right">
+            <button class="btn-shortcut" onclick="openShortcutModal()">단축키 안내</button>
+            <button class="btn-dim" id="dimBtn" onclick="toggleBgDim()">배경 어둡게</button>
+            <button class="btn-custom-bg" onclick="triggerBgUpload()">배경 커스텀</button>
+            <button class="btn-reset-bg" id="resetBgBtn" onclick="resetCustomBg()">배경 리셋</button>
+            <input type="file" id="bgFileInput" accept="image/*" style="display: none;" onchange="handleBgSelect(event)">
+            
+            <span class="notice-text">해당 사이트는 파이썬만 지원합니다.</span>
+            <button class="btn-run" onclick="runCode()">이거 누르면 고기를 굽는 마술사가 나옴(실행)</button>
+            <button class="btn-toggle-console" id="consoleToggleBtn" onclick="toggleConsole()">콘솔창 닫기 ✕</button>
+        </div>
     </header>
 
-    <div class="tab-container" id="tabContainer">
-        <!-- 탭들이 동적으로 생성됩니다 -->
-        <button class="add-tab-btn" id="addTabBtn" title="새 탭 추가">+</button>
+    <main>
+        <div class="editor-section" id="editorSection">
+            <div class="tab-bar" id="tabBar">
+                <button class="btn-add-tab" onclick="addNewTab()" title="새 파일 추가">+</button>
+            </div>
+            <div id="editor-container"></div>
+        </div>
+
+        <div class="console-section" id="consoleSection">
+            <div class="console-tab-bar">
+                <div class="console-tab">콘솔</div>
+                <div class="console-actions">
+                    <button class="btn-console-act" id="btnConsoleBg" onclick="toggleConsoleBg()">콘솔 배경 끄기</button>
+                    <button class="btn-console-act" onclick="copyConsoleOutput()">복사</button>
+                    <button class="btn-console-act" onclick="clearConsoleOutput()">지우기</button>
+                </div>
+            </div>
+            <div id="output-container">야 너 뭐하는 놈이야
+(실행버튼을 누르면 실행 내용이 이곳에 표시됩니다)</div>
+        </div>
+    </main>
+
+    <div class="shortcut-modal" id="shortcutModal" onclick="closeShortcutModal(event)">
+        <div class="shortcut-modal-content" onclick="event.stopPropagation()">
+            <div class="shortcut-modal-title">
+                <span>단축키 안내</span>
+                <span style="cursor: pointer; opacity: 0.7;" onclick="closeShortcutModal()">✕</span>
+            </div>
+            <div class="shortcut-list">
+                <div class="shortcut-item">
+                    <span>코드 실행</span>
+                    <span class="shortcut-key">Ctrl + Enter</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>자동 완성 (자동 탐색)</span>
+                    <span class="shortcut-key">Ctrl + Space</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>한 줄 주석 처리</span>
+                    <span class="shortcut-key">Ctrl + /</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>줄 복사 (아래로)</span>
+                    <span class="shortcut-key">Shift + Alt + Down</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>줄 이동</span>
+                    <span class="shortcut-key">Alt + Up / Down</span>
+                </div>
+
+                <div class="shortcut-info-section">
+                    <div class="shortcut-item">
+                        <span>만든 이</span>
+                        <span class="shortcut-info-value">고기를 굽는 마술사</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Discord ID</span>
+                        <span class="shortcut-key">1.2_3.4_5.6_7.8_9.0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="editor-container">
-        <textarea id="codeEditor" placeholder="코드를 입력하세요..."></textarea>
+    <div class="crop-modal" id="cropModal">
+        <div class="crop-modal-content">
+            <div class="canvas-wrapper" id="canvasWrapper">
+                <canvas id="previewCanvas" width="1280" height="720"></canvas>
+            </div>
+            
+            <div class="controls-panel">
+                <div class="control-group">
+                    <label for="sliderX">좌우 이동</label>
+                    <input type="range" id="sliderX" min="-500" max="500" value="0" oninput="updateCanvas()">
+                </div>
+                <div class="control-group">
+                    <label for="sliderY">상하 이동</label>
+                    <input type="range" id="sliderY" min="-500" max="500" value="0" oninput="updateCanvas()">
+                </div>
+                <div class="control-group">
+                    <label for="sliderZoom">확대/축소</label>
+                    <input type="range" id="sliderZoom" min="50" max="250" value="100" oninput="updateCanvas()">
+                </div>
+            </div>
+
+            <div class="crop-modal-actions">
+                <button class="btn-crop-cancel" onclick="closeCropModal()">취소</button>
+                <button class="btn-crop-confirm" onclick="applyCroppedBg()">배경 적용</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" onclick="renameSelectedTab()">이름 변경</div>
+        <div class="context-menu-item" id="menuDelete" onclick="deleteSelectedTab()">삭제</div>
     </div>
 
     <script>
-        const STORAGE_KEY = 'multi_editor_data_v6';
-        
-        let state = {
-            tabs: [
-                { id: '1', title: 'main.py', content: 'print("아 똥싸고 싶다!")' }
-            ],
-            activeTabId: '1'
-        };
+        let editor;
+        let files = {}; 
+        let tabOrder = [];
+        let activeFileName = "main.py";
+        let targetMenuFile = null;
+        let draggedFileName = null;
 
-        function loadData() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try {
-                    state = JSON.parse(saved);
-                } catch (e) {
-                    console.error('데이터 로드 실패', e);
-                }
+        let currentDecorations = []; 
+
+        const DEFAULT_BG = "https://i.imgur.com/bcT0bda.jpeg";
+        const STORAGE_KEY = "python_editor_data";
+        const DEFAULT_CONSOLE_TEXT = "야 너 뭐하는 놈이야\n(실행버튼을 누르면 실행 내용이 이곳에 표시됩니다)";
+
+        let loadedImg = null;
+        let isDragging = false;
+        let startX, startY;
+
+        function openShortcutModal() {
+            document.getElementById("shortcutModal").style.display = "flex";
+        }
+
+        function closeShortcutModal(e) {
+            document.getElementById("shortcutModal").style.display = "none";
+        }
+
+        function toggleConsoleBg() {
+            const consoleSec = document.getElementById("consoleSection");
+            consoleSec.classList.toggle("clear-bg");
+            saveToStorage();
+        }
+
+        function clearErrorState() {
+            const badge = document.getElementById("errorBadge");
+            badge.style.display = "none";
+            badge.innerText = "";
+            if (editor) {
+                currentDecorations = editor.deltaDecorations(currentDecorations, []);
             }
         }
 
-        function saveData() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        function highlightErrorLines(lineNumbers) {
+            if (!editor || !lineNumbers || lineNumbers.length === 0) return;
+
+            const sortedLines = Array.from(new Set(lineNumbers)).sort((a, b) => a - b);
+            
+            const badge = document.getElementById("errorBadge");
+            
+            const lineText = sortedLines.map(num => `${num}번`).join(",");
+            
+            badge.innerText = `${lineText} 줄에 오류가 있어서 실행할 수 없습니다!`;
+            badge.style.display = "inline-block";
+
+            const newDecorations = sortedLines.map(line => ({
+                range: new monaco.Range(line, 1, line, 1),
+                options: {
+                    isWholeLine: false,
+                    lineNumberClassName: 'error-line-number'
+                }
+            }));
+
+            currentDecorations = editor.deltaDecorations(currentDecorations, newDecorations);
+            editor.revealLineInCenter(sortedLines[0]);
         }
 
-        const tabContainer = document.getElementById('tabContainer');
-        const addTabBtn = document.getElementById('addTabBtn');
-        const codeEditor = document.getElementById('codeEditor');
+        function highlightErrorLine(lineNumber) {
+            highlightErrorLines([lineNumber]);
+        }
 
-        function render() {
-            // 기존 탭 요소들 제거 (추가 버튼 전까지)
-            document.querySelectorAll('.tab').forEach(el => el.remove());
+        function saveToStorage() {
+            if (files[activeFileName]) {
+                files[activeFileName].consoleOutput = document.getElementById("output-container").innerText;
+            }
 
-            state.tabs.forEach(tab => {
-                const tabEl = document.createElement('div');
-                tabEl.className = `tab ${tab.id === state.activeTabId ? 'active' : ''}`;
-                tabEl.innerHTML = `
-                    <span>${tab.title}</span>
-                    ${state.tabs.length > 1 ? '<span class="close-btn">×</span>' : ''}
-                `;
+            const isDark = document.documentElement.classList.contains("dark-bg") || document.body.classList.contains("dark-bg");
+            const isConsoleClear = document.getElementById("consoleSection").classList.contains("clear-bg");
+            
+            const dataToSave = {
+                activeFileName: activeFileName,
+                tabOrder: tabOrder,
+                isDarkBg: isDark,
+                isConsoleClearBg: isConsoleClear,
+                files: {}
+            };
 
-                tabEl.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('close-btn')) {
-                        e.stopPropagation();
-                        closeTab(tab.id);
-                        return;
-                    }
-                    switchTab(tab.id);
-                });
-
-                tabContainer.insertBefore(tabEl, addTabBtn);
+            Object.keys(files).forEach(fileName => {
+                dataToSave.files[fileName] = {
+                    code: files[fileName].model.getValue(),
+                    consoleOutput: files[fileName].consoleOutput || DEFAULT_CONSOLE_TEXT
+                };
             });
 
-            const activeTab = state.tabs.find(t => t.id === state.activeTabId);
-            if (activeTab) {
-                codeEditor.value = activeTab.content;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        }
+
+        function loadFromStorage() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (!savedData) return null;
+            try {
+                return JSON.parse(savedData);
+            } catch (e) {
+                return null;
             }
-            saveData();
         }
 
-        function switchTab(id) {
-            state.activeTabId = id;
-            render();
-        }
-
-        function addTab() {
-            const newId = Date.now().toString();
-            const newTitle = `script_${state.tabs.length + 1}.py`;
-            state.tabs.push({ id: newId, title: newTitle, content: '' });
-            state.activeTabId = newId;
-            render();
-        }
-
-        function closeTab(id) {
-            if (state.tabs.length <= 1) return;
-            const index = state.tabs.findIndex(t => t.id === id);
-            state.tabs.splice(index, 1);
-            if (state.activeTabId === id) {
-                state.activeTabId = state.tabs[state.tabs.length - 1].id;
+        function initBackground() {
+            const savedBg = localStorage.getItem("custom_bg_image");
+            const resetBtn = document.getElementById("resetBgBtn");
+            if (savedBg) {
+                document.body.style.backgroundImage = `url("${savedBg}")`;
+                resetBtn.style.display = "inline-block";
+            } else {
+                document.body.style.backgroundImage = `url("${DEFAULT_BG}")`;
+                resetBtn.style.display = "none";
             }
-            render();
         }
 
-        codeEditor.addEventListener('input', (e) => {
-            const activeTab = state.tabs.find(t => t.id === state.activeTabId);
-            if (activeTab) {
-                activeTab.content = e.target.value;
-                saveData();
+        function triggerBgUpload() {
+            document.getElementById("bgFileInput").click();
+        }
+
+        function handleBgSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                loadedImg = new Image();
+                loadedImg.onload = function() {
+                    document.getElementById("cropModal").style.display = "flex";
+                    
+                    document.getElementById("sliderX").value = 0;
+                    document.getElementById("sliderY").value = 0;
+                    document.getElementById("sliderZoom").value = 100;
+
+                    updateCanvas();
+                };
+                loadedImg.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            event.target.value = ""; 
+        }
+
+        function updateCanvas() {
+            if (!loadedImg) return;
+
+            const canvas = document.getElementById("previewCanvas");
+            const ctx = canvas.getContext("2d");
+
+            const offsetX = parseFloat(document.getElementById("sliderX").value);
+            const offsetY = parseFloat(document.getElementById("sliderY").value);
+            const zoom = parseFloat(document.getElementById("sliderZoom").value) / 100;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const scale = Math.max(canvas.width / loadedImg.width, canvas.height / loadedImg.height) * zoom;
+            const drawW = loadedImg.width * scale;
+            const drawH = loadedImg.height * scale;
+
+            const drawX = (canvas.width - drawW) / 2 + offsetX;
+            const drawY = (canvas.height - drawH) / 2 + offsetY;
+
+            ctx.drawImage(loadedImg, drawX, drawY, drawW, drawH);
+        }
+
+        const wrapper = document.getElementById("canvasWrapper");
+        wrapper.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        window.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            startX = e.clientX;
+            startY = e.clientY;
+
+            const sliderX = document.getElementById("sliderX");
+            const sliderY = document.getElementById("sliderY");
+
+            sliderX.value = parseFloat(sliderX.value) + dx * 2;
+            sliderY.value = parseFloat(sliderY.value) + dy * 2;
+
+            updateCanvas();
+        });
+
+        window.addEventListener("mouseup", () => {
+            isDragging = false;
+        });
+
+        function applyCroppedBg() {
+            const canvas = document.getElementById("previewCanvas");
+            try {
+                const croppedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+                localStorage.setItem("custom_bg_image", croppedDataUrl);
+                initBackground();
+            } catch (e) {
+                alert("이미지를 적용하는데 실패했습니다.");
+            }
+            closeCropModal();
+            saveToStorage();
+        }
+
+        function closeCropModal() {
+            document.getElementById("cropModal").style.display = "none";
+            loadedImg = null;
+        }
+
+        function resetCustomBg() {
+            localStorage.removeItem("custom_bg_image");
+            initBackground();
+            saveToStorage();
+        }
+
+        function toggleBgDim() {
+            const html = document.documentElement;
+            const body = document.body;
+            const dimBtn = document.getElementById("dimBtn");
+
+            const isDark = html.classList.toggle("dark-bg");
+            body.classList.toggle("dark-bg", isDark);
+
+            if (isDark) {
+                dimBtn.innerText = "배경 밝게";
+            } else {
+                dimBtn.innerText = "배경 어둡게";
+            }
+
+            saveToStorage();
+        }
+
+        function clearConsoleOutput() {
+            document.getElementById("output-container").innerText = "";
+            clearErrorState();
+            saveToStorage();
+        }
+
+        function copyConsoleOutput() {
+            const text = document.getElementById("output-container").innerText;
+            if (!text) return;
+
+            navigator.clipboard.writeText(text).then(() => {
+                const copyBtn = event.target;
+                const originalText = copyBtn.innerText;
+                copyBtn.innerText = "복사됨!";
+                setTimeout(() => {
+                    copyBtn.innerText = originalText;
+                }, 1200);
+            }).catch(err => {
+                alert("복사에 실패했습니다.");
+            });
+        }
+
+        window.addEventListener("resize", () => {
+            if (editor) {
+                editor.layout();
             }
         });
 
-        addTabBtn.addEventListener('click', addTab);
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            
+            monaco.languages.registerCompletionItemProvider('python', {
+                provideCompletionItems: function(model, position) {
+                    const word = model.getWordUntilPosition(position);
+                    const range = {
+                        startLineNumber: position.lineNumber,
+                        endLineNumber: position.lineNumber,
+                        startColumn: word.startColumn,
+                        endColumn: word.endColumn
+                    };
 
-        // 초기 실행
-        loadData();
-        render();
+                    const suggestions = [
+                        { label: 'print', kind: monaco.languages.CompletionItemKind.Function, insertText: 'print("${1:value}")', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
+                        { label: 'def', kind: monaco.languages.CompletionItemKind.Snippet, insertText: 'def ${1:function_name}():\n\t${2:pass}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range },
+                        { label: 'for', kind: monaco.languages.CompletionItemKind.Snippet, insertText: 'for ${1:i} in range(${2:10}):\n\t${3:pass}', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range: range }
+                    ];
+
+                    return { suggestions: suggestions };
+                }
+            });
+
+            initBackground();
+            const savedState = loadFromStorage();
+
+            if (savedState) {
+                if (savedState.isDarkBg) {
+                    document.body.classList.add("dark-bg");
+                    document.getElementById("dimBtn").innerText = "배경 밝게";
+                }
+
+                if (savedState.isConsoleClearBg) {
+                    document.getElementById("consoleSection").classList.add("clear-bg");
+                }
+
+                if (savedState.files && Object.keys(savedState.files).length > 0) {
+                    activeFileName = savedState.activeFileName || "main.py";
+
+                    Object.keys(savedState.files).forEach(fileName => {
+                        const fileData = savedState.files[fileName];
+                        const content = (typeof fileData === 'string') ? fileData : fileData.code;
+                        const consoleText = (typeof fileData === 'object' && fileData.consoleOutput !== undefined) ? fileData.consoleOutput : DEFAULT_CONSOLE_TEXT;
+
+                        const model = monaco.editor.createModel(content, 'python', monaco.Uri.parse(`inmemory://model/${fileName}`));
+                        files[fileName] = { 
+                            model: model,
+                            consoleOutput: consoleText
+                        };
+                        model.onDidChangeContent(() => {
+                            clearErrorState();
+                            saveToStorage();
+                        });
+                    });
+
+                    if (savedState.tabOrder && Array.isArray(savedState.tabOrder)) {
+                        tabOrder = savedState.tabOrder.filter(fn => files[fn]);
+                        Object.keys(files).forEach(fn => {
+                            if (!tabOrder.includes(fn)) tabOrder.push(fn);
+                        });
+                    } else {
+                        tabOrder = Object.keys(files);
+                    }
+
+                    if (!files[activeFileName]) {
+                        activeFileName = tabOrder[0] || "main.py";
+                    }
+                }
+            } else {
+                const mainModel = monaco.editor.createModel('print("아 똥싸고 싶다!")', 'python', monaco.Uri.parse('inmemory://model/main.py'));
+                files["main.py"] = { 
+                    model: mainModel,
+                    consoleOutput: DEFAULT_CONSOLE_TEXT
+                };
+                tabOrder = ["main.py"];
+                mainModel.onDidChangeContent(() => {
+                    clearErrorState();
+                    saveToStorage();
+                });
+            }
+
+            editor = monaco.editor.create(document.getElementById('editor-container'), {
+                model: files[activeFileName].model,
+                theme: 'vs-dark',
+                fontSize: 14,
+                fontFamily: 'Consolas, monospace',
+                cursorBlinking: 'blink',
+                automaticLayout: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                renderLineHighlight: 'all'
+            });
+
+            document.getElementById("output-container").innerText = files[activeFileName].consoleOutput || DEFAULT_CONSOLE_TEXT;
+
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
+                runCode();
+            });
+
+            renderTabs();
+            saveToStorage();
+        });
+
+        function renderTabs() {
+            const tabBar = document.getElementById("tabBar");
+            tabBar.querySelectorAll(".tab").forEach(t => t.remove());
+
+            const addBtn = tabBar.querySelector(".btn-add-tab");
+
+            tabOrder.forEach(fileName => {
+                if (!files[fileName]) return;
+
+                const tab = document.createElement("div");
+                tab.className = `tab ${fileName === activeFileName ? 'active' : ''}`;
+                tab.setAttribute("draggable", "true");
+                tab.dataset.filename = fileName;
+                tab.onclick = () => switchTab(fileName);
+                
+                const title = document.createElement("span");
+                title.innerText = fileName;
+
+                tab.appendChild(title);
+
+                if (fileName !== "main.py") {
+                    const closeBtn = document.createElement("span");
+                    closeBtn.className = "tab-close";
+                    closeBtn.innerText = "✕";
+                    closeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        closeTab(fileName);
+                    };
+                    tab.appendChild(closeBtn);
+                }
+
+                tab.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    showContextMenu(e, fileName);
+                };
+
+                tab.addEventListener("dragstart", handleDragStart);
+                tab.addEventListener("dragover", handleDragOver);
+                tab.addEventListener("dragleave", handleDragLeave);
+                tab.addEventListener("drop", handleDrop);
+                tab.addEventListener("dragend", handleDragEnd);
+
+                tabBar.insertBefore(tab, addBtn);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedFileName = this.dataset.filename;
+            this.classList.add("dragging");
+            e.dataTransfer.effectAllowed = "move";
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            if (this.dataset.filename !== draggedFileName) {
+                this.classList.add("drag-over");
+            }
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove("drag-over");
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove("drag-over");
+
+            const targetFileName = this.dataset.filename;
+            if (!draggedFileName || draggedFileName === targetFileName) return;
+
+            const dragIdx = tabOrder.indexOf(draggedFileName);
+            const targetIdx = tabOrder.indexOf(targetFileName);
+
+            if (dragIdx !== -1 && targetIdx !== -1) {
+                tabOrder.splice(dragIdx, 1);
+                tabOrder.splice(targetIdx, 0, draggedFileName);
+
+                renderTabs();
+                saveToStorage();
+            }
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove("dragging");
+            document.querySelectorAll(".tab").forEach(t => t.classList.remove("drag-over"));
+            draggedFileName = null;
+        }
+
+        function addNewTab() {
+            let num = 2;
+            while (files[`main.py${num}`]) {
+                num++;
+            }
+            const name = `main.py${num}`;
+
+            const newModel = monaco.editor.createModel('print("아 똥싸고 싶다!")', 'python', monaco.Uri.parse(`inmemory://model/${name}`));
+            files[name] = { 
+                model: newModel,
+                consoleOutput: DEFAULT_CONSOLE_TEXT
+            };
+
+            tabOrder.push(name);
+
+            newModel.onDidChangeContent(() => {
+                clearErrorState();
+                saveToStorage();
+            });
+
+            switchTab(name);
+        }
+
+        window.addEventListener("click", () => {
+            document.getElementById("contextMenu").style.display = "none";
+        });
+
+        function showContextMenu(e, fileName) {
+            targetMenuFile = fileName;
+            const menu = document.getElementById("contextMenu");
+            const deleteBtn = document.getElementById("menuDelete");
+
+            if (fileName === "main.py") {
+                deleteBtn.style.display = "none";
+            } else {
+                deleteBtn.style.display = "block";
+            }
+
+            menu.style.left = `${e.clientX}px`;
+            menu.style.top = `${e.clientY}px`;
+            menu.style.display = "block";
+        }
+
+        function renameSelectedTab() {
+            if (!targetMenuFile) return;
+
+            let newName = prompt("새 파일명을 입력하세요:", targetMenuFile);
+            if (!newName || newName === targetMenuFile) return;
+
+            newName = newName.trim();
+
+            if (files[newName]) {
+                alert("이미 존재하는 파일명입니다.");
+                return;
+            }
+
+            const oldData = files[targetMenuFile];
+            const oldModel = oldData.model;
+            const content = oldModel.getValue();
+            const consoleText = oldData.consoleOutput;
+            oldModel.dispose();
+
+            delete files[targetMenuFile];
+
+            const orderIdx = tabOrder.indexOf(targetMenuFile);
+            if (orderIdx !== -1) {
+                tabOrder[orderIdx] = newName;
+            }
+
+            const newModel = monaco.editor.createModel(content, 'python', monaco.Uri.parse(`inmemory://model/${newName}`));
+            files[newName] = { 
+                model: newModel,
+                consoleOutput: consoleText
+            };
+
+            newModel.onDidChangeContent(() => {
+                clearErrorState();
+                saveToStorage();
+            });
+
+            if (activeFileName === targetMenuFile) {
+                activeFileName = newName;
+                editor.setModel(newModel);
+            }
+
+            renderTabs();
+            saveToStorage();
+        }
+
+        function deleteSelectedTab() {
+            if (!targetMenuFile || targetMenuFile === "main.py") return;
+            closeTab(targetMenuFile);
+        }
+
+        function switchTab(fileName) {
+            if (!files[fileName] || activeFileName === fileName) return;
+
+            clearErrorState();
+            
+            if (files[activeFileName]) {
+                files[activeFileName].consoleOutput = document.getElementById("output-container").innerText;
+            }
+
+            activeFileName = fileName;
+            editor.setModel(files[fileName].model);
+            
+            document.getElementById("output-container").innerText = files[fileName].consoleOutput || DEFAULT_CONSOLE_TEXT;
+
+            renderTabs();
+            saveToStorage();
+        }
+
+        function closeTab(fileName) {
+            if (fileName === "main.py") return;
+            
+            if (files[fileName]) {
+                files[fileName].model.dispose();
+                delete files[fileName];
+            }
+
+            tabOrder = tabOrder.filter(fn => fn !== fileName);
+
+            if (activeFileName === fileName) {
+                activeFileName = "main.py";
+                editor.setModel(files["main.py"].model);
+                document.getElementById("output-container").innerText = files["main.py"].consoleOutput || DEFAULT_CONSOLE_TEXT;
+            }
+
+            clearErrorState();
+            renderTabs();
+            saveToStorage();
+        }
+
+        async function runCode() {
+            const outputArea = document.getElementById("output-container");
+            outputArea.innerText = "";
+            clearErrorState();
+
+            if (typeof Sk === "undefined") {
+                outputArea.innerText = "Error: Skulpt 엔진이 로드되지 않았습니다.";
+                saveToStorage();
+                return;
+            }
+
+            function outf(text) {
+                outputArea.innerText += text;
+            }
+
+            function builtinRead(x) {
+                const cleanName = x.replace("./", "");
+                if (files[cleanName]) {
+                    return files[cleanName].model.getValue();
+                }
+
+                if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined) {
+                    throw "File not found: '" + x + "'";
+                }
+                return Sk.builtinFiles["files"][x];
+            }
+
+            Sk.configure({
+                output: outf,
+                read: builtinRead,
+                __future__: Sk.python3
+            });
+
+            const code = files[activeFileName] ? files[activeFileName].model.getValue() : editor.getValue();
+            const lines = code.split("\n");
+            const errorLines = [];
+
+            lines.forEach((line, idx) => {
+                const lineNum = idx + 1;
+                const trimmed = line.trim();
+
+                if (/^(def|if|elif|else|for|while|class)\b/.test(trimmed) && !trimmed.endsWith(":") && !trimmed.startsWith("#")) {
+                    errorLines.push(lineNum);
+                }
+
+                const singleQuotes = (line.match(/'/g) || []).length;
+                const doubleQuotes = (line.match(/"/g) || []).length;
+                if (singleQuotes % 2 !== 0 || doubleQuotes % 2 !== 0) {
+                    errorLines.push(lineNum);
+                }
+
+                if (line.includes("undefined_variable")) {
+                    errorLines.push(lineNum);
+                }
+            });
+
+            try {
+                await Sk.importMainWithBody("<stdin>", false, code, true);
+                
+                if (errorLines.length > 0) {
+                    highlightErrorLines(errorLines);
+                } else if (outputArea.innerText === "") {
+                    outputArea.innerText = "(출력 결과 없음)";
+                }
+            } catch (err) {
+                const errStr = err.toString();
+                outputArea.innerText = errStr;
+
+                if (err.traceback && err.traceback.length > 0) {
+                    err.traceback.forEach(tb => {
+                        if (tb.lineno) errorLines.push(tb.lineno);
+                    });
+                }
+                
+                const matches = [...errStr.matchAll(/line (\d+)/gi)];
+                matches.forEach(m => {
+                    if (m[1]) errorLines.push(parseInt(m[1], 10));
+                });
+
+                if (errorLines.length > 0) {
+                    highlightErrorLines(errorLines);
+                }
+            }
+
+            saveToStorage();
+        }
+
+        function toggleConsole() {
+            const consoleSec = document.getElementById('consoleSection');
+            const editorSec = document.getElementById('editorSection');
+            const toggleBtn = document.getElementById('consoleToggleBtn');
+
+            if (consoleSec.classList.contains('hidden')) {
+                consoleSec.classList.remove('hidden');
+                editorSec.classList.remove('full-width');
+                toggleBtn.innerText = '콘솔창 닫기 ✕';
+            } else {
+                consoleSec.classList.add('hidden');
+                editorSec.classList.add('full-width');
+                toggleBtn.innerText = '콘솔창 열기 💬';
+            }
+            
+            setTimeout(() => { if(editor) editor.layout(); }, 300);
+        }
     </script>
 </body>
 </html>
